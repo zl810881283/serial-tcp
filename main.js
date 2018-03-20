@@ -48,7 +48,7 @@ let rotateFlow = Rx.Observable.fromEvent(serial, "data")
     }
     return dir ? "fbrlud"[i] : "fbrlud"[i].toLocaleUpperCase()
   })
-  .throttle(throttleMs)
+  .throttleTime(throttleMs)
 
 rotateFlow.subscribe(i => console.log(i))
 

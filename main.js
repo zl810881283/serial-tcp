@@ -2,7 +2,7 @@ let SerialPort = require("serialport")
 let Rx = require("rxjs")
 let net = require("net")
 
-let serialPortName = '/dev/tty.usbmodem1421'
+let serialPortName = 'COM3'
 let port = '8080'
 let host = '0.0.0.0'
 
@@ -18,6 +18,8 @@ dirMatrix = [
 ]
 
 net.createServer(socket => {
+  console.log('客户端已连接')
+  socket.on("error",()=>console.log("客户端出错关闭连接"))
   Rx.Observable.fromEvent(serial, "data")
   .map(i => {
     let raw = i.toString("hex", 4)
@@ -52,4 +54,4 @@ net.createServer(socket => {
     socket.write(i)
     console.log(i)
   })
-}).listen(port, host)
+}).listen(port, host,()=>{console.log("服务器启动成功！！")})

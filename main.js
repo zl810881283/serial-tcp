@@ -2,9 +2,11 @@ let SerialPort = require("serialport")
 let Rx = require("rxjs")
 let net = require("net")
 
-let serialPortName = 'COM3'
+let serialPortName = 'COM3' // windows
+//let serialPortName = '/dev/tty.usbmodem1421' // macbook pro 
 let port = '8080'
 let host = '0.0.0.0'
+let throttleMs = 200
 
 var serial = new SerialPort(serialPortName, {
   baudRate: 9800
@@ -16,11 +18,7 @@ dirMatrix = [
   [0, Infinity, Infinity, 1],
   [Infinity, 1, 0, Infinity]
 ]
-
-net.createServer(socket => {
-  console.log('客户端已连接')
-  socket.on("error",()=>console.log("客户端出错关闭连接"))
-  Rx.Observable.fromEvent(serial, "data")
+let rotateFlow = Rx.Observable.fromEvent(serial, "data")
   .map(i => {
     let raw = i.toString("hex", 4)
     return raw
@@ -50,8 +48,19 @@ net.createServer(socket => {
     }
     return dir ? "fbrlud"[i] : "fbrlud"[i].toLocaleUpperCase()
   })
-  .subscribe(i => {
+  .throttle(throttleMs)
+
+rotateFlow.subscribe(i => console.log(i))
+
+net.createServer(socket => {
+  console.log('客户端已连接')
+  socket.on("error", () => console.log("客户端出错"))
+
+  let rotateFlowSubscriber = rotateFlow.subscribe(i => {
     socket.write(i)
-    console.log(i)
   })
-}).listen(port, host,()=>{console.log("服务器启动成功！！")})
+  socket.on("close", () => {
+    console.log("关闭连接")
+    rotateFlowSubscriber.unsubscribe()
+  })
+}).listen(port, host, () => { console.log("服务器启动成功！！") })

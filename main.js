@@ -2,11 +2,12 @@ let SerialPort = require("serialport")
 let Rx = require("rxjs")
 let net = require("net")
 
-let serialPortName = 'COM3' // windows
-//let serialPortName = '/dev/tty.usbmodem1421' // macbook pro 
+//let serialPortName = 'COM3' // windows
+let serialPortName = '/dev/tty.usbmodem1421' // macbook pro 
 let port = '8080'
 let host = '0.0.0.0'
-let throttleMs = 200
+let throttleMs = 500
+let flushMs = 500
 
 var serial = new SerialPort(serialPortName, {
   baudRate: 9800
@@ -18,21 +19,32 @@ dirMatrix = [
   [0, Infinity, Infinity, 1],
   [Infinity, 1, 0, Infinity]
 ]
+let interval = Rx.Observable.interval(flushMs);
+
 let rotateFlow = Rx.Observable.fromEvent(serial, "data")
   .map(i => {
     let raw = i.toString("hex", 4)
     return raw
   })
   .map(raw => {
-    let d = parseInt(raw[1], 16) & 0x03
-    let b = parseInt(raw[1], 16) >> 2
-    let u = parseInt(raw[3], 16) & 0x03
-    let r = parseInt(raw[3], 16) >> 2
-    let f = parseInt(raw[5], 16) & 0x03
-    let l = parseInt(raw[5], 16) >> 2
+    let u = parseInt(raw[1], 16) & 0x03
+    let l = parseInt(raw[1], 16) >> 2
+    let d = parseInt(raw[3], 16) & 0x03
+    let f = parseInt(raw[3], 16) >> 2
+    let r = parseInt(raw[5], 16) & 0x03
+    let b = parseInt(raw[5], 16) >> 2
     let res = [f, b, r, l, u, d].join(" ")
     return res
   })
+  // 窗口 group max 滤波
+  .window(interval)
+  .flatMap(i => {
+    return i.groupBy(str => str).flatMap(type =>
+      Rx.Observable.zip(type.take(1), type.count, (state, count) => ({ state, count })
+      ).max(i, j => i.count - j.count).map(i => i.state)
+    )
+  })
+  // 窗口 group max 滤波结束
   .pairwise()
   .filter(arr => arr[0] != arr[1])
   .map(arr => {

@@ -7,7 +7,7 @@ let serialPortName = '/dev/tty.usbmodem1421' // macbook pro
 let port = '8080'
 let host = '0.0.0.0'
 let throttleMs = 500
-let flushMs = 500
+let flushMs = 250
 
 var serial = new SerialPort(serialPortName, {
   baudRate: 9800

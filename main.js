@@ -6,8 +6,8 @@ let net = require("net")
 let serialPortName = '/dev/tty.usbmodem1421' // macbook pro 
 let port = '8080'
 let host = '0.0.0.0'
-let throttleMs = 500
-let flushMs = 250
+let throttleMs = 200
+let flushMs = 50
 
 var serial = new SerialPort(serialPortName, {
   baudRate: 9800
@@ -22,10 +22,11 @@ dirMatrix = [
 let interval = Rx.Observable.interval(flushMs);
 
 let rotateFlow = Rx.Observable.fromEvent(serial, "data")
-  .map(i => {
-    let raw = i.toString("hex", 4)
-    return raw
-  })
+  .map(i => i.toString("hex"))
+  // 过滤非 "fe fe fe 7f" 开头的数据
+  .filter(i => i.slice(0,4) == "fefefe7f")
+  // 取后三个 byte
+  .map(i => i.slice(4))
   .map(raw => {
     let u = parseInt(raw[1], 16) & 0x03
     let l = parseInt(raw[1], 16) >> 2

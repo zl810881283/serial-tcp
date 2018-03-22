@@ -24,9 +24,9 @@ let interval = Rx.Observable.interval(flushMs);
 let rotateFlow = Rx.Observable.fromEvent(serial, "data")
   .map(i => i.toString("hex"))
   // 过滤非 "fe fe fe 7f" 开头的数据
-  .filter(i => i.slice(0,4) == "fefefe7f")
+  .filter(i => i.slice(0, 8) == "fefefe7f")
   // 取后三个 byte
-  .map(i => i.slice(4))
+  .map(i => i.slice(8))
   .map(raw => {
     let u = parseInt(raw[1], 16) & 0x03
     let l = parseInt(raw[1], 16) >> 2
